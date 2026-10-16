@@ -143,3 +143,29 @@ Verificación final (win32 + Docker linux): `just build/run/test/fmt/lint` → O
 run imprime también `godin_div`, `godin_apply` (=14) y `godin_dup`; **5 tests Odin**
 + go test; `just docker-linux-run` OK.
 
+---
+
+## 8) CALIDAD Y PLANTILLA (iteración 3)
+
+1. **golangci-lint** (`v2.14.0` vía winget): `.golangci.yml` (schema v2,
+   `default: standard` + errcheck/govet/staticcheck/revive/gocritic/unparam/...).
+   Recetas `just lint` (incluye golangci-lint si está) y `just lint-go`.
+   `just lint` → **0 issues**.
+
+2. **Refactor cgo**: toda la capa cgo vive ahora en `go/api.go` (wrappers Go);
+   `go/callback.go` exporta `go_square`; tests en `go/interop_test.go` usan
+   wrappers (cgo **no está soportado en `_test.go`**). `main.go` → `run()`.
+   - **Cobertura**: `just cover` → **91.8%**, HTML en `build/coverage.html`.
+   - Añadido `just fmt-check` (verifica formato para CI).
+
+3. **CI**: jobs Windows + Linux con formato, lint, build, test, cobertura
+   (subida como artefacto), smoke test; `ODIN_VERSION`/`GOLANGCI_VERSION` como env.
+   Badges en README (placeholder `OWNER` a sustituir al publicar).
+
+4. **Plantilla reutilizable**: `scripts/new-project.ps1` + `just new <path> <mod>`.
+   - Copia scaffolding excluyendo `.git`, `build`, `.vs`, `.idea`, `node_modules`,
+     logs y `GO-ODIN-TOOLKIT-PLAN.md`.
+   - Reescribe `go/go.mod` (module) y `README.md` (badges `OWNER`/`godin` + H1).
+   - `docs/TEMPLATE.md` documenta uso + cómo marcar el repo como template en GitHub.
+   - **Verificado**: proyecto generado (`github.com/acme/mytool`) compila y corre.
+

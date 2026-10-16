@@ -27,13 +27,30 @@ test: odin-lib
 	@$env:Path = "$PWD\build;$env:Path"; cd go; go test ./...
 	@{{_msvc}}; odin test odin
 
+# Go coverage report -> build/coverage.out + build/coverage.html
+cover: odin-lib
+	@New-Item -ItemType Directory -Force -Path build | Out-Null
+	@$env:Path = "$PWD\build;$env:Path"; cd go; go test "-covermode=atomic" "-coverprofile=../build/coverage.out" "./..."
+	@cd go; go tool cover "-func=../build/coverage.out" | Select-Object -Last 1
+	@cd go; go tool cover "-html=../build/coverage.out" "-o=../build/coverage.html"
+	@Write-Host "Coverage report -> build/coverage.html" -ForegroundColor Green
+
 fmt:
 	@gofmt -w go
 	@odin strip-semicolon odin -no-entry-point
 
+# Verify formatting without modifying files (for CI).
+fmt-check:
+	@$diff = gofmt -l go; if ($diff) { Write-Host "gofmt required on:" -ForegroundColor Red; $diff; exit 1 }
+	@odin strip-semicolon odin -no-entry-point | Out-Null; git diff --exit-code -- odin; if ($LASTEXITCODE -ne 0) { Write-Host "odin strip-semicolon required" -ForegroundColor Red; exit 1 }
+
 lint:
 	@cd go; go vet ./...
 	@odin check odin -no-entry-point
+	@if (Get-Command golangci-lint -ErrorAction SilentlyContinue) { cd go; golangci-lint run } else { Write-Host "golangci-lint not installed; skipping (see README)" -ForegroundColor Yellow }
+
+lint-go:
+	@cd go; golangci-lint run
 
 clean:
 	@Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force .\.vs -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force .\.idea -ErrorAction SilentlyContinue; exit 0
@@ -59,3 +76,8 @@ docker-linux-run:
 # Interactive shell in the build image (debugging).
 docker-shell:
 	@docker run --rm -it -v "${PWD}:/src" -w /src godin-odin bash
+
+# Scaffold a new Go + Odin project from this toolkit.
+# Usage: just new <path> <module>   e.g. just new ../mytool github.com/acme/mytool
+new path module:
+	@pwsh -NoProfile -File scripts/new-project.ps1 -Path "{{path}}" -Module "{{module}}"

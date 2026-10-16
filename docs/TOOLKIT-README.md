@@ -12,11 +12,14 @@ Scaffold funcional: interop **Go ↔ Odin** vía **ABI de C** (Odin `shared` lib
 | `build/` | Artefactos generados (ignorado) |
 | `scripts/env.ps1` | Diagnóstico del entorno |
 | `scripts/watch.ps1` | Hot-reload (Go + Odin) |
+| `scripts/new-project.ps1` | Scaffolding de proyectos nuevos |
+| `.golangci.yml` | Config de golangci-lint |
+| `Dockerfile` | Cross-build Linux |
 | `air.toml` | Config opcional de `air` (Go) |
 | `.vscode/` | Tareas/settings/extensiones |
 | `.github/workflows/` | CI (windows + linux) |
-| `templates/interop-cgo/` | Plantilla reutilizable |
-| `docs/` | Esta documentación |
+| `templates/interop-cgo/` | Esqueleto mínimo de interop |
+| `docs/` | Esta documentación (`TEMPLATE.md`, `TOOLKIT-README.md`) |
 
 ## Recetas `just`
 
@@ -26,10 +29,14 @@ just build          # odin shared -> go app
 just run            # ejecuta build/app.exe
 just test           # go test + odin test
 just fmt            # gofmt + odin strip-semicolon
-just lint           # go vet + odin check
+just fmt-check      # verifica formato (CI)
+just lint           # go vet + odin check + golangci-lint
+just lint-go        # solo golangci-lint
+just cover          # cobertura Go -> build/coverage.html
 just watch          # hot-reload: rebuild + rerun
 just watch-once     # valida el watcher sin observar
 just clean          # limpia build/
+just new <path> <mod>   # scaffolding de un proyecto nuevo
 just docker-linux       # -> build/linux/libgodin.so + build/linux/app
 just docker-linux-run   # smoke test Linux dentro del contenedor
 just docker-shell       # shell interactivo (debug)
@@ -57,7 +64,9 @@ Definida en `odin/lib.odin`, declarada en `shared/godin.h`:
 pwsh -File scripts/env.ps1
 just build
 just run     # -> godin_version = 1 ; godin_add = 5 ; godin_sum = 10 ; ... ; callback = 14
-just test    # -> 5 tests Odin + go test
+just test    # -> tests Go + 5 tests Odin
+just cover   # -> cobertura Go ≈ 92%
+just lint    # -> go vet + odin check + golangci-lint (0 issues)
 ```
 
 ## Requisitos del entorno

@@ -1,5 +1,11 @@
 # godin — Go + Odin toolkit (C ABI)
 
+<!-- Reemplaza OWNER por tu usuario/org de GitHub al publicar el repo. -->
+[![CI](https://github.com/OWNER/godin/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/godin/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/OWNER/godin)](https://goreportcard.com/report/github.com/OWNER/godin)
+[![Go Reference](https://pkg.go.dev/badge/github.com/OWNER/godin.svg)](https://pkg.go.dev/github.com/OWNER/godin)
+![coverage](https://img.shields.io/badge/coverage-91%25-brightgreen)
+
 Toolkit para programar en **Go** y **Odin** simultáneamente, comunicándolos vía
 **ABI de C** (Odin compila una librería compartida; Go la consume con `cgo`).
 
@@ -20,7 +26,9 @@ just build          # Odin shared lib -> Go app
 just run            # ejecuta build/app.exe
 just test           # go test + odin test
 just fmt            # gofmt + odin strip-semicolon
-just lint           # go vet + odin check
+just fmt-check      # verifica formato (CI)
+just lint           # go vet + odin check + golangci-lint
+just cover          # cobertura Go -> build/coverage.html
 just watch          # hot-reload: rebuild + rerun ante cambios
 just clean          # limpia artefactos
 just --list         # todas las recetas
@@ -133,4 +141,26 @@ go build -C go -o ../build/app .
   y reinicia la app. Útil también: `just watch-once` (valida sin observar).
 - **air** (Go): `air.toml` en la raíz; el build también recompila la lib Odin
   (`just odin-lib`). Instala con `go install github.com/air-verse/air@latest`.
+
+## Calidad
+
+- **golangci-lint** (`v2.14.0`): config en `.golangci.yml`; `just lint` lo ejecuta
+  si está instalado. Instalación: `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0`
+  (o `winget install GolangCI.golangci-lint`).
+- **Cobertura Go**: `just cover` (≈92%) genera `build/coverage.out` y
+  `build/coverage.html`. La capa `cgo` está en `go/api.go`; los tests usan esos
+  wrappers (cgo no está soportado en archivos `_test.go`).
+- **CI** (`.github/workflows/ci.yml`): jobs Windows + Linux con formato, lint,
+  build, test, cobertura (artefacto) y smoke test.
+
+## Plantilla
+
+Este repo es una plantilla reutilizable. Genera un proyecto nuevo:
+
+```powershell
+just new ..\mi-proyecto github.com/tu-org/mi-proyecto
+```
+
+Ver `docs/TEMPLATE.md` para detalles (qué copia, qué reescribe, y cómo usarlo
+como template de GitHub).
 
