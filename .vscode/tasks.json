@@ -2,55 +2,103 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "just build",
-      "type": "shell",
-      "command": "just",
+      "label": "godin build",
+      "type": "process",
+      "command": "pwsh",
       "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
         "build"
       ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
       "problemMatcher": []
     },
     {
-      "label": "just run",
-      "type": "shell",
-      "command": "just",
+      "label": "godin run",
+      "type": "process",
+      "command": "pwsh",
       "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
         "run"
       ],
       "problemMatcher": []
     },
     {
-      "label": "just test",
-      "type": "shell",
-      "command": "just",
+      "label": "godin test",
+      "type": "process",
+      "command": "pwsh",
       "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
         "test"
       ],
+      "group": "test",
       "problemMatcher": []
     },
     {
-      "label": "just fmt",
-      "type": "shell",
-      "command": "just",
+      "label": "godin fmt",
+      "type": "process",
+      "command": "pwsh",
       "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
         "fmt"
       ],
       "problemMatcher": []
     },
     {
-      "label": "just lint",
-      "type": "shell",
-      "command": "just",
+      "label": "godin lint",
+      "type": "process",
+      "command": "pwsh",
       "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
         "lint"
       ],
       "problemMatcher": []
     },
     {
-      "label": "just clean",
-      "type": "shell",
-      "command": "just",
+      "label": "godin cover",
+      "type": "process",
+      "command": "pwsh",
       "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
+        "cover"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "godin watch",
+      "type": "process",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
+        "watch"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "godin clean",
+      "type": "process",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
         "clean"
       ],
       "problemMatcher": []

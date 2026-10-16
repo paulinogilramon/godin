@@ -24,23 +24,20 @@ jobs:
         with:
           odin-version: ${{ env.ODIN_VERSION }}
 
-      - name: Setup Just
-        uses: extractions/setup-just@v3
-
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
 
       - name: Format check
-        run: just fmt-check
+        run: pwsh -NoProfile -File godin.ps1 fmt-check
 
       - name: Lint
-        run: just lint
+        run: pwsh -NoProfile -File godin.ps1 lint
 
       - name: Build & test
-        run: just build && just test
+        run: pwsh -NoProfile -File godin.ps1 build; pwsh -NoProfile -File godin.ps1 test
 
       - name: Coverage
-        run: just cover
+        run: pwsh -NoProfile -File godin.ps1 cover
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -49,7 +46,7 @@ jobs:
           path: build/coverage.out
 
       - name: Smoke test
-        run: just run
+        run: pwsh -NoProfile -File godin.ps1 run
 
   linux:
     runs-on: ubuntu-latest
@@ -72,21 +69,17 @@ jobs:
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
 
-      - name: Build
-        run: |
-          mkdir -p build
-          odin build odin -build-mode:shared -out:build/libgodin.so
-          go build -C go -o ../build/app .
+      - name: Format check
+        run: pwsh -NoProfile -File godin.ps1 fmt-check
 
       - name: Lint
-        working-directory: go
-        run: golangci-lint run
+        run: pwsh -NoProfile -File godin.ps1 lint
 
-      - name: Test with coverage
-        env:
-          CGO_ENABLED: '1'
-          LD_LIBRARY_PATH: ${{ github.workspace }}/build
-        run: go test -C go -covermode=atomic -coverprofile=build/coverage.out ./...
+      - name: Build & test
+        run: pwsh -NoProfile -File godin.ps1 build; pwsh -NoProfile -File godin.ps1 test
+
+      - name: Coverage
+        run: pwsh -NoProfile -File godin.ps1 cover
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -95,6 +88,4 @@ jobs:
           path: build/coverage.out
 
       - name: Smoke test
-        env:
-          LD_LIBRARY_PATH: ${{ github.workspace }}/build
-        run: ./build/app
+        run: pwsh -NoProfile -File godin.ps1 run

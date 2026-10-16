@@ -10,6 +10,7 @@ Scaffold funcional: interop **Go ↔ Odin** vía **ABI de C** (Odin `shared` lib
 | `odin/` | Librería Odin (`-build-mode:shared`) |
 | `shared/godin.h` | Cabecera C (manual) |
 | `build/` | Artefactos generados (ignorado) |
+| `godin.ps1` / `.cmd` / `.sh` | Task runner (sustituye a `just`) |
 | `scripts/env.ps1` | Diagnóstico del entorno |
 | `scripts/watch.ps1` | Hot-reload (Go + Odin) |
 | `scripts/new-project.ps1` | Scaffolding de proyectos nuevos |
@@ -21,25 +22,25 @@ Scaffold funcional: interop **Go ↔ Odin** vía **ABI de C** (Odin `shared` lib
 | `templates/interop-cgo/` | Esqueleto mínimo de interop |
 | `docs/` | Esta documentación (`TEMPLATE.md`, `TOOLKIT-README.md`) |
 
-## Recetas `just`
+## Comandos `godin`
 
 ```powershell
-just --list
-just build          # odin shared -> go app
-just run            # ejecuta build/app.exe
-just test           # go test + odin test
-just fmt            # gofmt + odin strip-semicolon
-just fmt-check      # verifica formato (CI)
-just lint           # go vet + odin check + golangci-lint
-just lint-go        # solo golangci-lint
-just cover          # cobertura Go -> build/coverage.html
-just watch          # hot-reload: rebuild + rerun
-just watch-once     # valida el watcher sin observar
-just clean          # limpia build/
-just new <path> <mod>   # scaffolding de un proyecto nuevo
-just docker-linux       # -> build/linux/libgodin.so + build/linux/app
-just docker-linux-run   # smoke test Linux dentro del contenedor
-just docker-shell       # shell interactivo (debug)
+.\godin help            # o: pwsh -NoProfile -File godin.ps1 help
+.\godin build           # odin shared -> go app
+.\godin run             # ejecuta build/app.exe
+.\godin test            # go test + odin test
+.\godin fmt             # gofmt + odin strip-semicolon
+.\godin fmt-check       # verifica formato (CI)
+.\godin lint            # go vet + odin check + golangci-lint
+.\godin lint-go         # solo golangci-lint
+.\godin cover           # cobertura Go -> build/coverage.html
+.\godin watch           # hot-reload: rebuild + rerun
+.\godin watch-once      # valida el watcher sin observar
+.\godin clean           # limpia build/
+.\godin new <path> <mod>    # scaffolding de un proyecto nuevo
+.\godin docker-linux        # -> build/linux/libgodin.so + build/linux/app
+.\godin docker-linux-run    # smoke test Linux dentro del contenedor
+.\godin docker-shell        # shell interactivo (debug)
 ```
 
 ## API de interop
@@ -62,14 +63,14 @@ Definida en `odin/lib.odin`, declarada en `shared/godin.h`:
 
 ```powershell
 pwsh -File scripts/env.ps1
-just build
-just run     # -> godin_version = 1 ; godin_add = 5 ; godin_sum = 10 ; ... ; callback = 14
-just test    # -> tests Go + 5 tests Odin
-just cover   # -> cobertura Go ≈ 92%
-just lint    # -> go vet + odin check + golangci-lint (0 issues)
+.\godin build
+.\godin run     # -> godin_version = 1 ; godin_add = 5 ; godin_sum = 10 ; ... ; callback = 14
+.\godin test    # -> tests Go + 5 tests Odin
+.\godin cover   # -> cobertura Go ≈ 92%
+.\godin lint    # -> go vet + odin check + golangci-lint (0 issues)
 ```
 
 ## Requisitos del entorno
 
-- Go, Odin (scoop), just (scoop), MSVC `link.exe`, gcc/mingw.
+- Go, Odin (scoop), PowerShell 7 (`pwsh`), MSVC `link.exe`, gcc/mingw.
 - Ver `README.md` para rutas exactas.

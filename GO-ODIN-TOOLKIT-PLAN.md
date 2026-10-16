@@ -83,7 +83,7 @@ Decisiones del usuario:
 - Objetivo: ejecutar archivos de ambos y que **se comuniquen entre sí**.
 - Relación: acoplados vía **ABI de C** (Odin shared lib + Go cgo).
 - Editor: **VS Code**. Target: **cross-compile**. CI: **sí**.
-- Task runner / hot-reload: a criterio del agente → **just**; hot-reload documentado (air/watchexec).
+- Task runner / hot-reload: a criterio del agente → **just** (reemplazado después por **`godin`**, ver §9); hot-reload documentado (air/watchexec).
 
 Fases completadas: P0 (exploración, dir vacío salvo el plan) → P5 (docs + validación).
 
@@ -168,4 +168,25 @@ run imprime también `godin_div`, `godin_apply` (=14) y `godin_dup`; **5 tests O
    - Reescribe `go/go.mod` (module) y `README.md` (badges `OWNER`/`godin` + H1).
    - `docs/TEMPLATE.md` documenta uso + cómo marcar el repo como template en GitHub.
    - **Verificado**: proyecto generado (`github.com/acme/mytool`) compila y corre.
+
+---
+
+## 9) TASK RUNNER PROPIO: `godin` (iteración 4)
+
+Se sustituye **`just`** por **`godin`** (script PowerShell 7 + wrappers):
+
+- `godin.ps1` — todos los comandos: `build`, `run`, `test`, `cover`, `fmt`,
+  `fmt-check`, `lint`, `lint-go`, `watch`, `watch-once`, `clean`, `new`,
+  `docker-linux`, `docker-linux-run`, `docker-shell`, `help`.
+  - Cross-platform (`$IsWin` = `$env:OS -eq 'Windows_NT'`): en Windows antepone
+    MSVC `link.exe` al PATH; en Linux usa `LD_LIBRARY_PATH` y `libgodin.so`.
+  - Usa `Push-Location`/`finally` para no ensuciar el cwd del llamante.
+  - Comprueba `$LASTEXITCODE` de cada comando nativo y `exit 1` si falla.
+- `godin.cmd` (Windows) y `godin.sh` (Linux/macOS) — lanzadores que llaman a `pwsh`.
+- Se **elimina** `justfile` y la dependencia de `just`.
+- Actualizado: `.vscode/tasks.json` (comandos `.\godin`), CI (ambos jobs usan
+  `pwsh -File godin.ps1 ...`), `air.toml`, `scripts/watch.ps1`
+  (invoca `godin.ps1 build`), y toda la documentación.
+
+Uso: `.\godin <comando>` (Windows) o `./godin.sh <comando>` (Linux/macOS).
 

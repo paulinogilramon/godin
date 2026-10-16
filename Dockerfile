@@ -1,5 +1,5 @@
 # Builds the Linux artifacts (libgodin.so + app) in a reproducible container.
-# Usage:  docker build -t godin-linux .   (or `just docker-linux`)
+# Usage:  docker build -t godin-linux .   (or `godin docker-linux`)
 #
 # Odin cannot cross-link to Linux from Windows, so Linux artifacts are produced
 # here (or on the CI ubuntu job) rather than via `odin -target:linux_amd64`.

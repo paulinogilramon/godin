@@ -7,8 +7,8 @@ Este repo funciona como plantilla para arrancar un proyecto que combina **Go**
 
 ```powershell
 pwsh -File scripts/new-project.ps1 -Path ..\mi-proyecto -Module github.com/tu-org/mi-proyecto
-# o, desde just:
-just new ..\mi-proyecto github.com/tu-org/mi-proyecto
+# o, con el task runner:
+.\godin new ..\mi-proyecto github.com/tu-org/mi-proyecto
 ```
 
 Parámetros:
@@ -22,7 +22,7 @@ Parámetros:
 
 Qué copia y qué no:
 
-- **Copia** el scaffolding completo: `justfile`, `Dockerfile`, `air.toml`,
+- **Copia** el scaffolding completo: `godin.ps1`, `godin.cmd`, `godin.sh`, `Dockerfile`, `air.toml`,
   `go/`, `odin/`, `shared/`, `scripts/`, `.vscode/`, `.github/`, `.golangci.yml`, `.gitattributes`, `.gitignore`, `.dockerignore`, `README.md`, `docs/`.
 - **Excluye**: `.git/`, `build/`, `.vs/`, `.idea/`, `node_modules/`, logs, temporales
   y `GO-ODIN-TOOLKIT-PLAN.md` (documenta este proyecto, no la plantilla).
@@ -33,7 +33,7 @@ Reescritura automática:
 - `README.md` → placeholders de badges (`OWNER`/`godin`) y el título H1.
 
 Verificado end-to-end: el proyecto generado compila y ejecuta
-(`just build`, `just run`, `just test`, `just lint`).
+(`godin build`, `godin run`, `godin test`, `godin lint`).
 
 ## Usarlo como template de GitHub
 
@@ -51,7 +51,7 @@ Verificado end-to-end: el proyecto generado compila y ejecuta
 ```powershell
 cd ..\mi-proyecto
 git init
-just build
-just run
-just test
+.\godin build
+.\godin run
+.\godin test
 ```

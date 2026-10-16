@@ -2,17 +2,17 @@
 # Docs: https://github.com/air-verse/air
 #
 # Note: the Go app links against the Odin shared library, so the build command
-# also rebuilds the Odin lib first (via `just odin-lib`).
+# also rebuilds the Odin lib first (via `godin odin-lib`).
 #
 # Usage:
-#   air                 # from repo root
+#   air                 # from repo root (requires pwsh on PATH)
 #
 root = "."
 tmp_dir = "build"
 
 [build]
   bin = "build/app.exe"
-  cmd = "just odin-lib && cd go && go build -o ../build/app.exe ."
+  cmd = "pwsh -NoProfile -File godin.ps1 go-build"
   delay = 500
   exclude_dir = ["build", "docs", "templates", ".git", ".vscode"]
   exclude_regex = ["_test.go", "~$", "\\.tmp$"]

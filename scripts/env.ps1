@@ -21,9 +21,16 @@ if (Test-Path $scoopOdin) {
   Write-Host "scoop odin: present at $scoopOdin"
 }
 
-$just = (Get-Command just -ErrorAction SilentlyContinue)
-if ($just) {
-  Write-Host "just: $($just.Source) -> $(just --version)"
+$pwsh = (Get-Command pwsh -ErrorAction SilentlyContinue)
+if ($pwsh) {
+  Write-Host "pwsh: $($pwsh.Source) -> $($PSVersionTable.PSVersion)"
 } else {
-  Write-Warning "just: MISSING"
+  Write-Warning "pwsh: MISSING (needed to run ./godin)"
+}
+
+$gci = (Get-Command golangci-lint -ErrorAction SilentlyContinue)
+if ($gci) {
+  Write-Host "golangci-lint: $($gci.Source) -> $(golangci-lint version --short 2>$null)"
+} else {
+  Write-Warning "golangci-lint: MISSING (godin lint will skip it)"
 }

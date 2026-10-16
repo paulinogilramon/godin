@@ -4,8 +4,8 @@
 
 .DESCRIPTION
   Watches .go, .odin and .h files. On change it rebuilds (Odin shared lib + Go
-  app via `just build`) and reruns the resulting executable. Handles both
-  backups (*~, *.tmp) by ignoring them.
+  app via `godin build`) and reruns the resulting executable. Ignores backup
+  files (*~, *.tmp).
 
 .PARAMETER IntervalMs
   Poll interval in milliseconds (default 800).
@@ -29,7 +29,8 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$app = Join-Path $root "build/app.exe"
+$exeName = if ($env:OS -eq 'Windows_NT') { "app.exe" } else { "app" }
+$app = Join-Path $root "build/$exeName"
 
 function Get-Stamp {
   $dirs = @("go", "odin", "shared") | ForEach-Object { Join-Path $root $_ }
@@ -41,7 +42,7 @@ function Get-Stamp {
 
 function Invoke-Build {
   Write-Host "[watch] building..." -ForegroundColor Cyan
-  & just --working-directory $root build
+  & (Join-Path $root "godin.ps1") build
   return $LASTEXITCODE -eq 0
 }
 
