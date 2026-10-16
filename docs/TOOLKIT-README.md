@@ -22,15 +22,17 @@ Scaffold funcional: interop **Go ↔ Odin** vía **ABI de C** (Odin `shared` lib
 
 ```powershell
 just --list
-just build        # odin shared -> go app
-just run          # ejecuta build/app.exe
-just test         # go test + odin test
-just fmt          # gofmt + odin strip-semicolon
-just lint         # go vet + odin check
-just watch        # hot-reload: rebuild + rerun
-just watch-once   # valida el watcher sin observar
-just clean        # limpia build/
-just cross-linux  # build/libgodin.so + build/app
+just build          # odin shared -> go app
+just run            # ejecuta build/app.exe
+just test           # go test + odin test
+just fmt            # gofmt + odin strip-semicolon
+just lint           # go vet + odin check
+just watch          # hot-reload: rebuild + rerun
+just watch-once     # valida el watcher sin observar
+just clean          # limpia build/
+just docker-linux       # -> build/linux/libgodin.so + build/linux/app
+just docker-linux-run   # smoke test Linux dentro del contenedor
+just docker-shell       # shell interactivo (debug)
 ```
 
 ## API de interop
@@ -45,14 +47,17 @@ Definida en `odin/lib.odin`, declarada en `shared/godin.h`:
 | `godin_sum` | `([^]c.double, c.int) -> c.double` | slice (puntero + longitud) |
 | `godin_scale` | `(^Vec3, c.double)` | struct por puntero |
 | `godin_make_vec3` | `(c.double, c.double, c.double) -> Vec3` | struct por valor |
+| `godin_div` / `godin_last_error` | error handling | división por cero |
+| `godin_apply` | `(..., ApplyFn) -> c.double` | callback (Odin llama a Go) |
+| `godin_dup` / `godin_free` | ownership | memoria libc |
 
 ## Validación
 
 ```powershell
 pwsh -File scripts/env.ps1
 just build
-just run     # -> godin_version = 1 ; godin_add = 5 ; godin_sum = 10 ; ...
-just test
+just run     # -> godin_version = 1 ; godin_add = 5 ; godin_sum = 10 ; ... ; callback = 14
+just test    # -> 5 tests Odin + go test
 ```
 
 ## Requisitos del entorno

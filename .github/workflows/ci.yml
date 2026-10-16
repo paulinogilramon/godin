@@ -18,13 +18,16 @@ jobs:
       - name: Setup Odin
         uses: odin-lang/setup-odin@v1
         with:
-          odin-version: 'dev-2025-09'
+          odin-version: 'dev-2026-10'
 
       - name: Setup Just
         uses: extractions/setup-just@v3
 
       - name: Build, lint & test
         run: just fmt && just lint && just build && just test
+
+      - name: Smoke test
+        run: just run
 
   linux:
     runs-on: ubuntu-latest
@@ -39,15 +42,24 @@ jobs:
       - name: Setup Odin
         uses: odin-lang/setup-odin@v1
         with:
-          odin-version: 'dev-2025-09'
+          odin-version: 'dev-2026-10'
 
-      - name: Build Odin shared lib
-        run: odin build odin -build-mode:shared -out:build/libgodin.so
+      - name: Install clang (Odin linker driver on Linux)
+        run: sudo apt-get update && sudo apt-get install -y clang
 
-      - name: Build & test Go
+      - name: Build
+        run: |
+          mkdir -p build
+          odin build odin -build-mode:shared -out:build/libgodin.so
+          go build -C go -o ../build/app .
+
+      - name: Test
         env:
           CGO_ENABLED: '1'
           LD_LIBRARY_PATH: ${{ github.workspace }}/build
-        run: |
-          go build -C go -o ../build/app .
-          go test -C go ./...
+        run: go test -C go ./...
+
+      - name: Smoke test
+        env:
+          LD_LIBRARY_PATH: ${{ github.workspace }}/build
+        run: ./build/app

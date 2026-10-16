@@ -115,3 +115,31 @@ Toolchain (se mantiene vía **scoop**, no winget):
 - Go `1.26.4`, Odin `dev-2026-05-nightly`, just `1.59.0`.
 - Odin **no existe** en winget; reinstalar Go vía winget crearía conflicto con el shim de scoop → se acordó mantener scoop.
 
+---
+
+## 7) ENDURECIMIENTO (iteración 2)
+
+1. **Repo git**: `git init` (rama `main`), `.gitattributes` (LF, CRLF en `.ps1`),
+   `.gitignore` ampliado, primer commit.
+
+2. **Cross-compile real (Linux)**: se confirmó que **Odin no puede cross-linkear
+   desde Windows** (`Linking for cross compilation ... not supported`) y `cgo`
+   necesita toolchain del target. Solución: **Docker**.
+   - `Dockerfile` (multi-stage): `golang:1.26-bookworm` + `clang` + Odin `dev-2026-10`.
+   - `just docker-linux` extrae `build/linux/{libgodin.so,app}`.
+   - `just docker-linux-run` smoke test; `just docker-shell` para depurar.
+   - Go Linux con `RUNPATH=$ORIGIN` para hallar `libgodin.so`.
+   - Verificado: la app Linux imprime lo mismo que en Windows.
+
+3. **Interop endurecido**:
+   - **Errores**: `godin_div` + `godin_last_error` (cstring).
+   - **Callbacks**: `go/callback.go` (`//export go_square`) → `godin_apply`
+     (`ApplyFn = proc "c" (c.double) -> c.double`).
+   - **Ownership**: `godin_dup` con `libc.malloc` + `godin_free`.
+     *Hallazgo*: NO usar el allocator de Odin — su runtime no se inicializa al
+     cargar la lib desde Go (segfault en `mem.alloc`).
+
+Verificación final (win32 + Docker linux): `just build/run/test/fmt/lint` → OK;
+run imprime también `godin_div`, `godin_apply` (=14) y `godin_dup`; **5 tests Odin**
++ go test; `just docker-linux-run` OK.
+

@@ -3,9 +3,12 @@ package main
 /*
 #cgo CFLAGS: -I../shared
 #cgo windows LDFLAGS: -L../build -lgodin
-#cgo linux LDFLAGS: -L../build -lgodin -ldl -lm
+#cgo linux LDFLAGS: -L../build -lgodin -ldl -lm -Wl,-rpath,$ORIGIN
 #include <stdlib.h>
 #include "godin.h"
+
+extern double go_square(double);
+static godin_apply_fn go_square_ptr(void) { return go_square; }
 */
 import "C"
 import (
@@ -33,4 +36,21 @@ func main() {
 	m := C.godin_make_vec3(4, 5, 6)
 	fmt.Printf("godin_make_vec3(4,5,6) = {%g, %g, %g}\n",
 		float64(m.x), float64(m.y), float64(m.z))
+
+	// Error handling.
+	fmt.Printf("godin_div(6, 2) = %g  (last_error=%q)\n",
+		float64(C.godin_div(6, 2)), C.GoString(C.godin_last_error()))
+	_ = C.godin_div(1, 0)
+	fmt.Printf("godin_div(1, 0) = %g  (last_error=%q)\n",
+		float64(C.godin_div(1, 0)), C.GoString(C.godin_last_error()))
+
+	// Callback: Odin calls go_square for each element.
+	sq := []C.double{1, 2, 3}
+	fmt.Printf("godin_apply({1,2,3}, go_square) = %g\n",
+		float64(C.godin_apply(&sq[0], C.int(len(sq)), C.go_square_ptr())))
+
+	// Memory ownership: Odin-allocated string released with godin_free.
+	dup := C.godin_dup(msg)
+	fmt.Printf("godin_dup(%q) = %q (freed via godin_free)\n", C.GoString(msg), C.GoString(dup))
+	C.godin_free(unsafe.Pointer(dup))
 }

@@ -4,9 +4,7 @@
 set shell := ["pwsh", "-NoProfile", "-Command"]
 
 odin_out_win := "build/godin.dll"
-odin_out_linux := "build/libgodin.so"
 go_out_win := "build/app.exe"
-go_out_linux := "build/app"
 
 default: build
 
@@ -46,5 +44,18 @@ watch:
 watch-once:
 	@pwsh -NoProfile -File scripts/watch.ps1 -Once -NoRun
 
-cross-linux:
-	@{{_msvc}}; odin build odin -build-mode:shared -target:linux_amd64 -out:{{odin_out_linux}}; $env:GOOS='linux'; $env:GOARCH='amd64'; cd go; go build -o ../{{go_out_linux}} .
+# Cross-build Linux artifacts in a container (Odin cannot cross-link from Windows).
+# Produces build/linux/libgodin.so + build/linux/app.
+docker-linux:
+	@docker build -t godin-linux .
+	@New-Item -ItemType Directory -Force -Path build/linux | Out-Null
+	@$cid = (docker create godin-linux); docker cp "${cid}:/src/build/libgodin.so" build/linux/; docker cp "${cid}:/src/build/app" build/linux/; docker rm $cid | Out-Null; Write-Host "Linux artifacts -> build/linux/" -ForegroundColor Green
+
+# Run the Linux app inside the container (smoke test).
+docker-linux-run:
+	@docker build -t godin-linux .
+	@docker run --rm godin-linux ./build/app
+
+# Interactive shell in the build image (debugging).
+docker-shell:
+	@docker run --rm -it -v "${PWD}:/src" -w /src godin-odin bash
