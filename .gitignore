@@ -16,3 +16,7 @@ __pycache__/
 *.log
 *.tmp
 *~
+# coverage artifacts (when generated outside build/)
+go/coverage*
+coverage.out
+coverage.html
