@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Setup Odin
+        uses: odin-lang/setup-odin@v1
+        with:
+          odin-version: 'dev-2025-09'
+
+      - name: Setup Just
+        uses: extractions/setup-just@v3
+
+      - name: Build, lint & test
+        run: just fmt && just lint && just build && just test
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Setup Odin
+        uses: odin-lang/setup-odin@v1
+        with:
+          odin-version: 'dev-2025-09'
+
+      - name: Build Odin shared lib
+        run: odin build odin -build-mode:shared -out:build/libgodin.so
+
+      - name: Build & test Go
+        env:
+          CGO_ENABLED: '1'
+          LD_LIBRARY_PATH: ${{ github.workspace }}/build
+        run: |
+          go build -C go -o ../build/app .
+          go test -C go ./...

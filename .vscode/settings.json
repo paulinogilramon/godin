@@ -1,0 +1,13 @@
+{
+  "go.formatTool": "gofmt",
+  "editor.formatOnSave": true,
+  "[go]": {
+    "editor.formatOnSave": true
+  },
+  "[odin]": {
+    "editor.formatOnSave": true
+  },
+  "files.exclude": {
+    "build": true
+  }
+}

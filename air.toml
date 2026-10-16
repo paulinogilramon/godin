@@ -1,0 +1,27 @@
+# air — live reload for the Go side of the toolkit.
+# Docs: https://github.com/air-verse/air
+#
+# Note: the Go app links against the Odin shared library, so the build command
+# also rebuilds the Odin lib first (via `just odin-lib`).
+#
+# Usage:
+#   air                 # from repo root
+#
+root = "."
+tmp_dir = "build"
+
+[build]
+  bin = "build/app.exe"
+  cmd = "just odin-lib && cd go && go build -o ../build/app.exe ."
+  delay = 500
+  exclude_dir = ["build", "docs", "templates", ".git", ".vscode"]
+  exclude_regex = ["_test.go", "~$", "\\.tmp$"]
+  include_ext = ["go", "odin", "h"]
+  kill_delay = "300ms"
+
+[color]
+  build = "yellow"
+  runner = "green"
+
+[log]
+  time = true
