@@ -142,6 +142,11 @@ function cmd-lint-go {
   if ($g -ne 0) { Die 'golangci-lint failed' }
 }
 
+function cmd-doctor {
+  & (Join-Path $script:Root 'scripts/doctor.ps1')
+  Check 'doctor'
+}
+
 function cmd-clean {
   foreach ($p in @('build', '.vs', '.idea')) {
     Remove-Item -Recurse -Force (Join-Path $script:Root $p) -ErrorAction SilentlyContinue
@@ -191,6 +196,7 @@ function Show-Help {
   Write-Host @"
 godin — task runner (Go + Odin, C ABI)
 
+  godin doctor             check the local toolchain (exit 1 if incomplete)
   godin build              Odin shared lib + Go app
   godin run                build + run the app
   godin test               go test + odin test
@@ -217,6 +223,7 @@ $rest = @($script:Argv | Select-Object -Skip 1)
 Push-Location $script:Root
 try {
   switch ($cmd) {
+    'doctor'           { cmd-doctor }
     'build'            { cmd-build }
     'odin-lib'         { cmd-odin-lib }
     'go-build'         { cmd-go-build }
