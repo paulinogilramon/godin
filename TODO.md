@@ -12,7 +12,7 @@
   *Criterio:* `.\godin doctor` exit 0 aquí; con `PATH` sin `odin` → exit 1 y
   mensaje claro. Funciona en Linux (sin MSVC).
 
-- [ ] **PP2 · `godin version` + `godin check`** — versión del runner
+- [x] **PP2 · `godin version` + `godin check`** — versión del runner
   (`0.5.0`) + versiones de go/odin; `check` = `fmt-check` + `lint` + `test`.
   *Criterio:* ambos comandos exit 0; aparecen en `godin help` y en `.vscode/tasks.json`.
 

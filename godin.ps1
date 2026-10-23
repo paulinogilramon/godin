@@ -17,6 +17,7 @@ $ErrorActionPreference = 'Stop'
 $script:Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:IsWin = ($env:OS -eq 'Windows_NT')
 $script:Argv = @($args)
+$script:GodinVersion = '0.5.0'
 
 function Die([string]$msg) {
   Write-Host "godin: $msg" -ForegroundColor Red
@@ -147,6 +148,25 @@ function cmd-doctor {
   Check 'doctor'
 }
 
+function cmd-version {
+  $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
+  Write-Host "godin $($script:GodinVersion)"
+  Write-Host "platform  $([System.Runtime.InteropServices.RuntimeInformation]::OSDescription) ($([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture))"
+  $go = Get-Command go -ErrorAction SilentlyContinue
+  if ($go) { Write-Host "go        $(& go version)" } else { Write-Host 'go        (not found)' }
+  $odin = Get-Command odin -ErrorAction SilentlyContinue
+  if ($odin) { Write-Host "odin      $((& odin version 2>&1 | Select-Object -First 1))" } else { Write-Host 'odin      (not found)' }
+  if ($pwsh) { Write-Host "pwsh      $($PSVersionTable.PSVersion)" }
+}
+
+# Full pre-push gate: formatting, lint and tests.
+function cmd-check {
+  cmd-fmt-check
+  cmd-lint
+  cmd-test
+  Write-Host 'godin: all checks passed' -ForegroundColor Green
+}
+
 function cmd-clean {
   foreach ($p in @('build', '.vs', '.idea')) {
     Remove-Item -Recurse -Force (Join-Path $script:Root $p) -ErrorAction SilentlyContinue
@@ -197,6 +217,8 @@ function Show-Help {
 godin — task runner (Go + Odin, C ABI)
 
   godin doctor             check the local toolchain (exit 1 if incomplete)
+  godin version            runner + toolchain versions
+  godin check              fmt-check + lint + test (pre-push gate)
   godin build              Odin shared lib + Go app
   godin run                build + run the app
   godin test               go test + odin test
@@ -224,6 +246,8 @@ Push-Location $script:Root
 try {
   switch ($cmd) {
     'doctor'           { cmd-doctor }
+    'version'          { cmd-version }
+    'check'            { cmd-check }
     'build'            { cmd-build }
     'odin-lib'         { cmd-odin-lib }
     'go-build'         { cmd-go-build }

@@ -2,6 +2,31 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "godin doctor",
+      "type": "process",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
+        "doctor"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "godin check",
+      "type": "process",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-File",
+        "godin.ps1",
+        "check"
+      ],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
       "label": "godin build",
       "type": "process",
       "command": "pwsh",
