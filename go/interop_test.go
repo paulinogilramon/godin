@@ -8,7 +8,7 @@ func TestRun(t *testing.T) {
 }
 
 // TestMainFunc exercises the real entrypoint (it only calls run()).
-func TestMainFunc(t *testing.T) {
+func TestMainFunc(_ *testing.T) {
 	main()
 }
 

@@ -49,7 +49,7 @@ if (Test-Path -LiteralPath $dst) {
 New-Item -ItemType Directory -Force -Path $dst | Out-Null
 
 $excludeDirs = @('.git', 'build', '.vs', '.idea', 'node_modules', '__pycache__', '.venv')
-$excludeNames = @('GO-ODIN-TOOLKIT-PLAN.md')
+$excludeNames = @('GO-ODIN-TOOLKIT-PLAN.md', 'TODO.md')
 
 $srcFull = [System.IO.Path]::GetFullPath($src)
 Get-ChildItem -LiteralPath $srcFull -Recurse -Force -File | ForEach-Object {

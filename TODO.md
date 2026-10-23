@@ -51,37 +51,37 @@
 
 ## P3 — CI
 
-- [ ] **CI1 · Workflow más robusto** — `workflow_dispatch`, `concurrency`,
+- [x] **CI1 · Workflow más robusto** — `workflow_dispatch`, `concurrency`,
   `permissions: contents: read`, `GO_VERSION` pinneado, paso `doctor`, gate de
   cobertura, `test-race` en Linux.
   *Criterio:* YAML válido (`pwsh` + parser o `actionlint` si está) y jobs
   coherentes con los comandos locales.
 
-- [ ] **CI2 · Smoke de plantilla en CI** — job `template` en matrix
+- [x] **CI2 · Smoke de plantilla en CI** — job `template` en matrix
   Windows+Linux que ejecuta `godin test-template`.
   *Criterio:* job definido y reproducible en local.
 
 ## P4 — Documentación y plantilla
 
-- [ ] **D1 · README genérico y quickstart** — quitar rutas/versiones
+- [x] **D1 · README genérico y quickstart** — quitar rutas/versiones
   personales, "3 pasos" (`doctor` → `build` → `run`), tabla de comandos
   actualizada, troubleshooting, badges con nota de `OWNER`.
   *Criterio:* README sin `C:\Users\pauli`; quickstart copiable.
 
-- [ ] **D2 · `docs/TROUBLESHOOTING.md`** — link.exe no encontrado, DLL no
+- [x] **D2 · `docs/TROUBLESHOOTING.md`** — link.exe no encontrado, DLL no
   encontrada (0xc000007b), odin nightly/versión, gcc/cgo, pwsh ausente,
   golangci-lint ausente, Docker.
   *Criterio:* cada síntoma con causa + fix verificado.
 
-- [ ] **D3 · `docs/ARCHITECTURE.md`** — layout, flujo de build, contrato ABI,
+- [x] **D3 · `docs/ARCHITECTURE.md`** — layout, flujo de build, contrato ABI,
   ownership, checklist "añadir un símbolo" (odin → header → wrapper → test → docs).
   *Criterio:* checklist aplicable a un símbolo nuevo.
 
-- [ ] **D4 · Metadatos del repo** — `LICENSE` (MIT), `CHANGELOG.md`,
+- [x] **D4 · Metadatos del repo** — `LICENSE` (MIT), `CHANGELOG.md`,
   `CONTRIBUTING.md`, actualizar `docs/TEMPLATE.md`.
   *Criterio:* archivos presentes y enlazados desde README.
 
-- [ ] **D5 · Plantilla realmente funcional** — `templates/interop-cgo/main.go`
+- [x] **D5 · Plantilla realmente funcional** — `templates/interop-cgo/main.go`
   llama a `godin_add` y corre; `docs/TEMPLATE.md` refleja `doctor/check`.
   *Criterio:* `godin test-template` cubre también el template suelto (PP4) y
   `templates/interop-cgo` compila por sí mismo.

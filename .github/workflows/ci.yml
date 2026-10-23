@@ -2,22 +2,33 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
+  GO_VERSION: '1.26'
   GOLANGCI_VERSION: v2.14.0
   ODIN_VERSION: dev-2026-10
 
 jobs:
   windows:
     runs-on: windows-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 'stable'
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Setup Odin
         uses: odin-lang/setup-odin@v1
@@ -27,16 +38,22 @@ jobs:
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
 
+      - name: Doctor
+        run: pwsh -NoProfile -File godin.ps1 doctor
+
       - name: Format check
         run: pwsh -NoProfile -File godin.ps1 fmt-check
 
       - name: Lint
         run: pwsh -NoProfile -File godin.ps1 lint
 
-      - name: Build & test
-        run: pwsh -NoProfile -File godin.ps1 build; pwsh -NoProfile -File godin.ps1 test
+      - name: Build
+        run: pwsh -NoProfile -File godin.ps1 build
 
-      - name: Coverage
+      - name: Test
+        run: pwsh -NoProfile -File godin.ps1 test
+
+      - name: "Coverage (gate: 95%)"
         run: pwsh -NoProfile -File godin.ps1 cover
 
       - name: Upload coverage
@@ -44,19 +61,21 @@ jobs:
         with:
           name: coverage-windows
           path: build/coverage.out
+          retention-days: 7
 
       - name: Smoke test
         run: pwsh -NoProfile -File godin.ps1 run
 
   linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 'stable'
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Setup Odin
         uses: odin-lang/setup-odin@v1
@@ -69,16 +88,25 @@ jobs:
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
 
+      - name: Doctor
+        run: pwsh -NoProfile -File godin.ps1 doctor
+
       - name: Format check
         run: pwsh -NoProfile -File godin.ps1 fmt-check
 
       - name: Lint
         run: pwsh -NoProfile -File godin.ps1 lint
 
-      - name: Build & test
-        run: pwsh -NoProfile -File godin.ps1 build; pwsh -NoProfile -File godin.ps1 test
+      - name: Build
+        run: pwsh -NoProfile -File godin.ps1 build
 
-      - name: Coverage
+      - name: Test
+        run: pwsh -NoProfile -File godin.ps1 test
+
+      - name: Race detector
+        run: pwsh -NoProfile -File godin.ps1 test-race
+
+      - name: "Coverage (gate: 95%)"
         run: pwsh -NoProfile -File godin.ps1 cover
 
       - name: Upload coverage
@@ -86,6 +114,35 @@ jobs:
         with:
           name: coverage-linux
           path: build/coverage.out
+          retention-days: 7
 
       - name: Smoke test
         run: pwsh -NoProfile -File godin.ps1 run
+
+  template:
+    name: template (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Odin
+        uses: odin-lang/setup-odin@v1
+        with:
+          odin-version: ${{ env.ODIN_VERSION }}
+
+      - name: Install clang (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang
+
+      - name: Scaffold + build + run
+        run: pwsh -NoProfile -File godin.ps1 test-template
