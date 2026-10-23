@@ -90,6 +90,14 @@ function cmd-test {
   if ($o -ne 0) { Die 'odin test failed' }
 }
 
+# Go race detector (cgo + Odin DLL); slower, so not part of `godin test`.
+function cmd-test-race {
+  cmd-odin-lib
+  Add-LibPath
+  Push-Location (Join-Path $script:Root 'go')
+  try { & go test -race ./...; Check 'go test -race' } finally { Pop-Location }
+}
+
 function cmd-cover {
   cmd-odin-lib
   Add-LibPath
@@ -167,6 +175,12 @@ function cmd-check {
   Write-Host 'godin: all checks passed' -ForegroundColor Green
 }
 
+# Scaffold a project from this toolkit and build/run it end-to-end.
+function cmd-test-template {
+  & (Join-Path $script:Root 'scripts/test-template.ps1')
+  Check 'test-template'
+}
+
 function cmd-clean {
   foreach ($p in @('build', '.vs', '.idea')) {
     Remove-Item -Recurse -Force (Join-Path $script:Root $p) -ErrorAction SilentlyContinue
@@ -222,6 +236,8 @@ godin — task runner (Go + Odin, C ABI)
   godin build              Odin shared lib + Go app
   godin run                build + run the app
   godin test               go test + odin test
+  godin test-race          go test -race (cgo + Odin DLL)
+  godin test-template      scaffold + build + run the template (smoke)
   godin cover              Go coverage -> build/coverage.html
   godin fmt                gofmt + odin strip-semicolon
   godin fmt-check          verify formatting (CI)
@@ -253,6 +269,8 @@ try {
     'go-build'         { cmd-go-build }
     'run'              { cmd-run }
     'test'             { cmd-test }
+    'test-race'        { cmd-test-race }
+    'test-template'    { cmd-test-template }
     'cover'            { cmd-cover }
     'fmt'              { cmd-fmt }
     'fmt-check'        { cmd-fmt-check }

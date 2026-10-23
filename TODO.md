@@ -16,11 +16,11 @@
   (`0.5.0`) + versiones de go/odin; `check` = `fmt-check` + `lint` + `test`.
   *Criterio:* ambos comandos exit 0; aparecen en `godin help` y en `.vscode/tasks.json`.
 
-- [ ] **PP3 · `godin test-race`** — `go test -race` (cgo + DLL) separado de
+- [x] **PP3 · `godin test-race`** — `go test -race` (cgo + DLL) separado de
   `test` para no ralentizar el bucle normal.
   *Criterio:* exit 0 en win32; añadido a CI Linux.
 
-- [ ] **PP4 · `godin test-template`** — `scripts/test-template.ps1`:
+- [x] **PP4 · `godin test-template`** — `scripts/test-template.ps1`:
   scaffold en `build/template-smoke` con `new-project.ps1`, `godin build` +
   `godin run` y comprueba salida; limpia al final. Demuestra que la plantilla
   es plug and play.
