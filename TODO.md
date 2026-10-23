@@ -88,7 +88,7 @@
 
 ## Cierre
 
-- [ ] **Z1 · Verificación final** — `godin fmt-check`, `lint`, `test`,
+- [x] **Z1 · Verificación final** — `godin fmt-check`, `lint`, `test`,
   `cover`, `bench`, `test-template`, `doctor`, `run` en verde; `git status`
   limpio salvo commits del bucle.
   *Criterio:* todos exit 0 y salida documentada en `GO-ODIN-TOOLKIT-PLAN.md` §10.
