@@ -26,7 +26,7 @@
   es plug and play.
   *Criterio:* exit 0 y la salida contiene `godin_add(2, 3) = 5`.
 
-- [ ] **PP5 · `.editorconfig`** — LF por defecto, CRLF en `.ps1/.cmd/.bat`,
+- [x] **PP5 · `.editorconfig`** — LF por defecto, CRLF en `.ps1/.cmd/.bat`,
   indent 2 en JSON/YAML, tabs en Go, UTF-8.
   *Criterio:* archivo presente y coherente con `.gitattributes`.
 
