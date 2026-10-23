@@ -117,9 +117,29 @@ test_godin_add :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_godin_version :: proc(t: ^testing.T) {
+	testing.expect_value(t, godin_version(), c.int(1))
+}
+
+@(test)
+test_godin_str_len :: proc(t: ^testing.T) {
+	testing.expect_value(t, godin_str_len(cstring("")), c.int(0))
+	testing.expect_value(t, godin_str_len(cstring("hello")), c.int(5))
+	testing.expect_value(t, godin_str_len(cstring("añó")), c.int(5)) // UTF-8 bytes
+}
+
+@(test)
+test_godin_make_vec3 :: proc(t: ^testing.T) {
+	testing.expect_value(t, godin_make_vec3(4, 5, 6), Vec3{4, 5, 6})
+	testing.expect_value(t, godin_make_vec3(-1, 0, 2.5), Vec3{-1, 0, 2.5})
+}
+
+@(test)
 test_godin_sum :: proc(t: ^testing.T) {
 	xs := [?]c.double{1, 2, 3, 4}
 	testing.expect_value(t, godin_sum(raw_data(xs[:]), 4), c.double(10))
+	testing.expect_value(t, godin_sum(nil, 0), c.double(0))
+	testing.expect_value(t, godin_sum(raw_data(xs[:]), 1), c.double(1))
 }
 
 @(test)
@@ -127,6 +147,24 @@ test_godin_scale :: proc(t: ^testing.T) {
 	v := Vec3{1, 2, 3}
 	godin_scale(&v, 2)
 	testing.expect_value(t, v, Vec3{2, 4, 6})
+}
+
+@(test)
+test_godin_scale_zero :: proc(t: ^testing.T) {
+	v := Vec3{1, -2, 3}
+	godin_scale(&v, 0)
+	testing.expect_value(t, v, Vec3{})
+}
+
+square :: proc "c" (x: c.double) -> c.double {
+	return x * x
+}
+
+@(test)
+test_godin_apply :: proc(t: ^testing.T) {
+	xs := [?]c.double{1, 2, 3}
+	testing.expect_value(t, godin_apply(raw_data(xs[:]), 3, square), c.double(14))
+	testing.expect_value(t, godin_apply(nil, 0, square), c.double(0))
 }
 
 @(test)
@@ -144,4 +182,10 @@ test_godin_dup_free :: proc(t: ^testing.T) {
 	testing.expect_value(t, string(dup), "hello")
 	testing.expect(t, rawptr(dup) != rawptr(orig), "expected a fresh allocation")
 	godin_free(rawptr(dup))
+
+	empty := godin_dup(cstring(""))
+	testing.expect_value(t, string(empty), "")
+	godin_free(rawptr(empty))
+
+	godin_free(nil) // must be a no-op
 }

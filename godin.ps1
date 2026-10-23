@@ -98,6 +98,13 @@ function cmd-test-race {
   try { & go test -race ./...; Check 'go test -race' } finally { Pop-Location }
 }
 
+function cmd-bench {
+  cmd-odin-lib
+  Add-LibPath
+  Push-Location (Join-Path $script:Root 'go')
+  try { & go test -run '^$' -bench . -benchmem ./...; Check 'go test -bench' } finally { Pop-Location }
+}
+
 function cmd-cover {
   cmd-odin-lib
   Add-LibPath
@@ -109,6 +116,8 @@ function cmd-cover {
     & go tool cover "-func=$cov"; Check 'go cover -func'
     & go tool cover "-html=$cov" "-o=$html"; Check 'go cover -html'
   } finally { Pop-Location }
+  & (Join-Path $script:Root 'scripts/coverage-check.ps1') -Min 95
+  Check 'coverage gate'
   Write-Host 'coverage -> build/coverage.html' -ForegroundColor Green
 }
 
@@ -238,6 +247,7 @@ godin — task runner (Go + Odin, C ABI)
   godin test               go test + odin test
   godin test-race          go test -race (cgo + Odin DLL)
   godin test-template      scaffold + build + run the template (smoke)
+  godin bench              Go benchmarks via cgo
   godin cover              Go coverage -> build/coverage.html
   godin fmt                gofmt + odin strip-semicolon
   godin fmt-check          verify formatting (CI)
@@ -271,6 +281,7 @@ try {
     'test'             { cmd-test }
     'test-race'        { cmd-test-race }
     'test-template'    { cmd-test-template }
+    'bench'            { cmd-bench }
     'cover'            { cmd-cover }
     'fmt'              { cmd-fmt }
     'fmt-check'        { cmd-fmt-check }

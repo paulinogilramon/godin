@@ -32,20 +32,20 @@
 
 ## P2 — Tests y cobertura
 
-- [ ] **T1 · Go: cerrar gaps** — `LastError`, `ApplySquares(empty)`,
+- [x] **T1 · Go: cerrar gaps** — `LastError`, `ApplySquares(empty)`,
   `Dup("")`, `Dup` unicode, `Add` negativos, `Sum` un elemento, ejecutar `main()`.
   *Criterio:* `godin cover` ≥ 95% total.
 
-- [ ] **T2 · Odin: más casos** — `godin_version`, `godin_str_len` (vacío/ASCII),
+- [x] **T2 · Odin: más casos** — `godin_version`, `godin_str_len` (vacío/ASCII),
   `godin_make_vec3`, `godin_apply`, `godin_sum` con n=0, `godin_free(nil)`,
   `godin_dup` vacío.
   *Criterio:* `odin test odin` ≥ 10 tests, todos OK.
 
-- [ ] **T3 · Benchmarks** — `go/api_test.go` con `BenchmarkAdd`/`BenchmarkSum`
+- [x] **T3 · Benchmarks** — `go/api_test.go` con `BenchmarkAdd`/`BenchmarkSum`
   y comando `godin bench`.
   *Criterio:* `.\godin bench` exit 0 y muestra ns/op.
 
-- [ ] **T4 · Puerta de cobertura** — `scripts/coverage-check.ps1 -Min 95`,
+- [x] **T4 · Puerta de cobertura** — `scripts/coverage-check.ps1 -Min 95`,
   invocado desde `godin cover` y CI.
   *Criterio:* con umbral 99 → exit 1; con 95 → exit 0.
 
