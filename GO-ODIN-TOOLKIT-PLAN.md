@@ -190,3 +190,43 @@ Se sustituye **`just`** por **`godin`** (script PowerShell 7 + wrappers):
 
 Uso: `.\godin <comando>` (Windows) o `./godin.sh <comando>` (Linux/macOS).
 
+
+---
+
+## 10) CALIDAD Y PLUG-AND-PLAY (iteración 5, v0.5.0)
+
+Objetivo: endurecer tests/CI/docs y que el repo funcione recién clonado.
+
+1. **Diagnóstico**: `godin doctor` (`scripts/doctor.ps1`) comprueba pwsh, go,
+   cgo, odin, link.exe (Win) / clang (Linux), gcc, golangci-lint y docker;
+   `OK/WARN/FALTA` + pista de instalación; exit 1 si falta algo obligatorio.
+   `godin version` muestra runner + toolchain.
+
+2. **Comandos nuevos**: `check` (fmt-check + lint + test), `test-race`,
+   `bench`, `test-template`. Todos en `help` y `.vscode/tasks.json`.
+
+3. **Tests**: Go cubre `LastError`, ramas vacías, UTF-8, negativos y `main()`
+   → cobertura **91.8% → 98.0%** (el 2% restante es la rama defensiva
+   `godin_dup == nil`, no alcanzable sin forzar fallo de malloc). Odin pasa de
+   5 a **10 tests**. Gate de cobertura al 95% integrado en `godin cover`
+   (`scripts/coverage-check.ps1`).
+
+4. **Plantilla**: `templates/interop-cgo/main.go` ahora llama a `godin_add`.
+   `scripts/test-template.ps1` scaffoldea un proyecto completo y ensambla el
+   template mínimo; compila y ejecuta ambos. `godin new` excluye `TODO.md`.
+
+5. **CI**: `workflow_dispatch`, `concurrency`, `permissions: contents: read`,
+   `GO_VERSION=1.26`, paso `doctor`, gate de cobertura, `-race` en Linux y job
+   `template` en matrix Windows+Linux.
+
+6. **Docs**: README genérico con quickstart de 3 pasos (sin rutas de máquina),
+   `docs/ARCHITECTURE.md` (ABI, ownership, checklist para añadir símbolos),
+   `docs/TROUBLESHOOTING.md` (link.exe, DLL/0xc000007b, cgo, Odin nightly,
+   Docker), `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE` (MIT),
+   `.editorconfig`. Corregida la codificación UTF-8 de `docs/`.
+
+Verificación final (win32, todas exit 0):
+`godin doctor`, `version`, `fmt-check`, `lint` (0 issues), `test` (Go + 10
+tests Odin), `test-race`, `cover` (98.0% ≥ 95%), `bench` (Add 45 ns/op,
+Sum 98 ns/op, Dup 311 ns/op), `test-template` (scaffold + template mínimo) y
+`run` con la salida de interop completa.
