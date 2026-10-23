@@ -5,6 +5,22 @@ versionado [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+- **Image blur case study** ([docs/CASE-STUDY-IMAGE-BLUR.md](docs/CASE-STUDY-IMAGE-BLUR.md)): Go CLI orchestrates I/O/validation/hashing; Odin implements separable box and 5×5 Gaussian across cgo. Reproducible `godin case-study` (benchmarks by variant/minimal/speed/nobounds, tile sweep, call overhead, Windows/Linux hashes). CLI `godin blur` (`box|gauss`, `go|odin|both`).
+- `godin blur`, `godin case-study`, `godin odin-variant` commands in the task runner.
+- Odin blur kernels/tests and `go/blur` package (pure Go + cgo) with `TestNoAllocs` and cross-implementation equality.
+- CI smoke test “Case study smoke (Go == Odin)” on Windows and Linux.
+- Docker builds `build/blur`; `go/blur` uses Linux `rpath=$ORIGIN`.
+
+### Changed
+- `godin build`/`odin-lib` now build with `-o:speed` (Odin default `-o:minimal` is significantly slower for this workload).
+- `godin bench` targets `.` only; `godin cover` measures `.` and `./blur` (excludes CLI main).
+- CLI `blur` reports average and best-of-N timings.
+
+### Notes
+- All blur outputs are byte-for-byte identical across Go/Odin and Windows/Linux (verified by the case study). Box blur is often memory-bandwidth limited; Gauss 5×5 separable shows ~1.2–1.9× with `-o:speed` in measured runs.
+
+
 ## [0.5.0] - 2026-10-23
 
 ### Added

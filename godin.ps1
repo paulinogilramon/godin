@@ -57,7 +57,7 @@ function Test-Has([string]$name) {
 function cmd-odin-lib {
   Add-Msvc
   $out = if ($script:IsWin) { 'build/godin.dll' } else { 'build/libgodin.so' }
-  & odin build odin -build-mode:shared "-out:$out"
+  & odin build odin -build-mode:shared -o:speed "-out:$out"
   Check 'odin build'
 }
 
@@ -102,7 +102,50 @@ function cmd-bench {
   cmd-odin-lib
   Add-LibPath
   Push-Location (Join-Path $script:Root 'go')
-  try { & go test -run '^$' -bench . -benchmem ./...; Check 'go test -bench' } finally { Pop-Location }
+  try { & go test -run '^$' -bench . -benchmem .; Check 'go test -bench' } finally { Pop-Location }
+}
+
+# Build a shared library variant for the case study (opt level, bounds checks).
+# usage: godin odin-variant -Out build/variants/speed -Opt speed [-NoBounds]
+function cmd-odin-variant {
+  param($rest)
+  $out = 'build/variants/custom'
+  $opt = 'speed'
+  $noBounds = $false
+  for ($i = 0; $i -lt $rest.Count; $i++) {
+    switch ($rest[$i]) {
+      '-Out' { $i++; $out = $rest[$i] }
+      '-Opt' { $i++; $opt = $rest[$i] }
+      '-NoBounds' { $noBounds = $true }
+      default { Die "odin-variant: unknown argument $($rest[$i])" }
+    }
+  }
+  Add-Msvc
+  $dir = Join-Path $script:Root $out
+  New-Item -ItemType Directory -Force -Path $dir | Out-Null
+  $lib = if ($script:IsWin) { 'godin.dll' } else { 'libgodin.so' }
+  $args = @('build', 'odin', '-build-mode:shared', "-o:$opt", "-out:$out/$lib")
+  if ($noBounds) { $args += '-no-bounds-check' }
+  & odin @args
+  Check "odin variant $out"
+}
+
+# Build and run the case-study image CLI.
+function cmd-blur {
+  param($rest)
+  cmd-odin-lib
+  Add-LibPath
+  $rel = if ($script:IsWin) { 'build/blur.exe' } else { 'build/blur' }
+  Push-Location (Join-Path $script:Root 'go')
+  try { & go build -o "../$rel" ./cmd/blur; Check 'go build blur' } finally { Pop-Location }
+  & (Join-Path $script:Root $rel) @rest
+  Check 'blur'
+}
+
+function cmd-case-study {
+  param($rest)
+  & pwsh -NoProfile -File (Join-Path $script:Root 'scripts/case-study.ps1') @rest
+  Check 'case-study'
 }
 
 function cmd-cover {
@@ -112,7 +155,9 @@ function cmd-cover {
   $html = '../build/coverage.html'
   Push-Location (Join-Path $script:Root 'go')
   try {
-    & go test '-covermode=atomic' "-coverprofile=$cov" './...'; Check 'go test -cover'
+    # The CLI (cmd/blur) is exercised by tests but is not part of the library
+    # coverage gate; measure the root package and the blur package.
+    & go test '-covermode=atomic' "-coverprofile=$cov" '.' './blur'; Check 'go test -cover'
     & go tool cover "-func=$cov"; Check 'go cover -func'
     & go tool cover "-html=$cov" "-o=$html"; Check 'go cover -html'
   } finally { Pop-Location }
@@ -247,12 +292,15 @@ godin — task runner (Go + Odin, C ABI)
   godin test               go test + odin test
   godin test-race          go test -race (cgo + Odin DLL)
   godin test-template      scaffold + build + run the template (smoke)
-  godin bench              Go benchmarks via cgo
+  godin bench              Go benchmarks via cgo (demo package)
+  godin blur [flags]       image blur CLI (box/gauss, Go vs Odin)
+  godin case-study         reproducible image-blur study -> build/case-study/
   godin cover              Go coverage -> build/coverage.html
   godin fmt                gofmt + odin strip-semicolon
   godin fmt-check          verify formatting (CI)
   godin lint               go vet + odin check + golangci-lint
   godin lint-go            golangci-lint only
+  godin odin-variant       build a lib variant (case study internals)
   godin watch              hot-reload (rebuild + rerun)
   godin watch-once         validate the watcher without watching
   godin clean              remove build artifacts
@@ -282,6 +330,9 @@ try {
     'test-race'        { cmd-test-race }
     'test-template'    { cmd-test-template }
     'bench'            { cmd-bench }
+    'blur'             { cmd-blur $rest }
+    'case-study'       { cmd-case-study $rest }
+    'odin-variant'     { cmd-odin-variant $rest }
     'cover'            { cmd-cover }
     'fmt'              { cmd-fmt }
     'fmt-check'        { cmd-fmt-check }

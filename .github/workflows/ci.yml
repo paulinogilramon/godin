@@ -53,6 +53,12 @@ jobs:
       - name: Test
         run: pwsh -NoProfile -File godin.ps1 test
 
+      - name: "Case study smoke (Go == Odin)"
+        if: runner.os == 'Windows'
+        run: |
+          pwsh -NoProfile -File godin.ps1 blur -gen build/ci-blur.png -w 320 -h 200 -quiet
+          pwsh -NoProfile -File godin.ps1 blur -in build/ci-blur.png -op gauss -impl both -quiet
+
       - name: "Coverage (gate: 95%)"
         run: pwsh -NoProfile -File godin.ps1 cover
 
@@ -105,6 +111,11 @@ jobs:
 
       - name: Race detector
         run: pwsh -NoProfile -File godin.ps1 test-race
+
+      - name: "Case study smoke (Go == Odin)"
+        run: |
+          pwsh -NoProfile -File godin.ps1 blur -gen build/ci-blur.png -w 320 -h 200 -quiet
+          pwsh -NoProfile -File godin.ps1 blur -in build/ci-blur.png -op gauss -impl both -quiet
 
       - name: "Coverage (gate: 95%)"
         run: pwsh -NoProfile -File godin.ps1 cover

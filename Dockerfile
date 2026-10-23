@@ -28,5 +28,6 @@ WORKDIR /src
 COPY . .
 
 RUN mkdir -p build \
- && odin build odin -build-mode:shared -out:build/libgodin.so \
- && go build -C go -o ../build/app .
+ && odin build odin -build-mode:shared -o:speed -out:build/libgodin.so \
+ && go build -C go -o ../build/app . \
+ && go build -C go -o ../build/blur ./cmd/blur

@@ -32,6 +32,21 @@ double      godin_apply(const double *xs, int n, godin_apply_fn f);
 char       *godin_dup(const char *s);
 void        godin_free(void *p);
 
+/* Image kernels (RGBA8, caller-owned buffers) --------------------------- */
+
+/*
+ * Box blur with arbitrary radius (0 = copy). src, dst and tmp must point to
+ * w*h*4 bytes. Edges are clamped. Deterministic: identical results in Go.
+ */
+void        godin_blur_box_rgba(const unsigned char *src, unsigned char *dst,
+                                unsigned char *tmp, int w, int h, int radius);
+
+/*
+ * Separable 5x5 Gaussian blur (1,4,6,4,1 / 16). Same buffer requirements.
+ */
+void        godin_blur_gauss5_rgba(const unsigned char *src, unsigned char *dst,
+                                   unsigned char *tmp, int w, int h);
+
 #ifdef __cplusplus
 }
 #endif

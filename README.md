@@ -144,6 +144,18 @@ Reglas clave (detalle en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)):
 - **Odin nightly**: `-build-mode:shared` (no `c-shared`), `odin strip-semicolon`
   (no `odin fmt`) y `-no-entry-point` para librerías.
 
+## Caso práctico: imagen blur (Go + Odin)
+
+```powershell
+.\godin blur -gen blur.png -w 1920 -h 1080        # generar imagen sintética
+.\godin blur -in blur.png -op gauss -impl both   # comparar Go vs Odin (igualdad forzada)
+.\godin case-study                               # estudio reproducible -> build/case-study/results.txt
+```
+
+Ver **[docs/CASE-STUDY-IMAGE-BLUR.md](docs/CASE-STUDY-IMAGE-BLUR.md)** con metodología,
+mediciones, *tiles/cgo overhead*, variantes de optimización, portabilidad Windows/Linux
+y hashes idénticos.
+
 ## Cross-compile (Linux)
 
 Odin no puede cross-linkear a Linux desde Windows y cgo necesita el toolchain

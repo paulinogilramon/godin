@@ -1,232 +1,127 @@
-# Toolkit para programar en Go y Odin simultáneamente
+# Plan del toolkit Go + Odin (C ABI)
 
-## 1) Definir "simultáneo" (preguntas para acotar)
+Objetivo: disponer de un repo **listo para usar y extender** que muestre cómo comunicar Go y Odin vía ABI de C con `cgo`, incluyendo un *task runner* propio, plantilla, hot-reload, cross-build Linux en Docker y CI.
 
-Antes de diseñar archivos, necesito que me aclares el objetivo:
+## 1) REQUISITOS FUNCIONALES
 
-| Pregunta | Opciones | Notas |
-|---|---|---|
-| ¿Qué quieres lograr con "simultáneo"? | (a) Editar ambos idiomas en el mismo proyecto (políglota) / (b) Ejecutar herramientas/editor en paralelo / (c) Ambos + interop (Go llama Odin) / (d) Otro | Determina si necesito bindings (cgo + shared lib de Odin) o solo orquestación de tareas. |
-| ¿Hay relación entre ellos? | (a) Independientes (dos apps) / (b) Acoplados (Go orquesta lógica de Odin, p.ej. rendimiento) / (c) Aún no lo sé | Si (b), priorizamos plantillas de FFI/ABI C. |
-| ¿Editor/entorno? | VS Code, Neovim, Zed, Emacs, CLI-only | Para generar `.vscode/settings.json`, `tasks.json`, `launch.json` o configs agnósticos. |
-| ¿Sistema objetivo? | win32 (actual), Linux, cross-compile | Afecta rutas, `.dll/.so/.a`, `odin build` flags. |
-| ¿Gestor de tareas preferido? | `just` (justfile), `Taskfile.yaml` (go-task), `Makefile`, scripts `pwsh/ps1` + `bash` | Quiero elegir uno para unificar ambos. |
-| ¿Necesitas hot-reload? | Sí/No (¿air para Go, y watcher para Odin?) | Útil si vas a iterar mucho. |
-| ¿Quieres que incluya CI? | Sí/No (GitHub Actions) | Puede esperar, pero útil definir comandos unificados. |
+- Mostrar interop mínimo: funciones escalares, strings C, slices, structs por valor/puntero, callbacks (Go ←→ Odin), manejo de errores y *ownership* (`malloc`/`free`).
+- Odin compila a **librería compartida** (`.dll`/`.so`) con `-build-mode:shared`, exportando `@(export)` con `core:c`.
+- Go consume con `cgo`, cabecera `shared/godin.h` y LDFLAGS con ruta al `build/`.
+- Un solo comando `godin` (PowerShell 7) para `doctor/version/build/run/test/bench/cover/lint/fmt/watch/new/clean`.
+- Plantilla reutilizable `templates/interop-cgo/` y `godin new`.
+- Hot-reload (`godin watch`) con `scripts/watch.ps1`.
+- Cross-build Linux reproducible vía Docker.
+- CI Windows + Linux, *format-check*, *lint*, *tests*, *race* (Linux), *coverage gate* 95%.
 
-Responde lo que prefieras (etiquetas (a)-(d) bastan).
+## 2) ARQUITECTURA PROPUESTA
 
-## 2) Explorar el repositorio actual (lectura)
+| Elemento | Descripción |
+| --- | --- |
+| `odin/lib.odin` | Librería exportada: `version/add/str_len/sum/scale/make_vec3/div/last_error/apply/dup/free`. Usa `libc` para `dup/free`. Estado de error global con *mutex*. |
+| `shared/godin.h` | Contrato C (tipos `Vec3`, `godin_apply_fn`). Escrito a mano (Odin no genera headers fiables). |
+| `go/api.go` | Fachada tipada, convierte entre Go y C, gestiona errores y propiedad. |
+| `go/callback.go` | `//export go_square` para demostrar callback Odin→Go. |
+| `go/main.go` | Demo que imprime todos los casos. |
+| `godin.ps1` | *Task runner*: checks, MSVC, PATH para DLL, Go/Odin, lint, cover, etc. |
+| `scripts/doctor.ps1` | Diagnóstico con `OK/WARN/FALTA` + pistas. |
+| `scripts/coverage-check.ps1` | Gate ≥ 95% sobre `go test -cover`. |
+| `scripts/new-project.ps1` | Scaffolding con reemplazo de módulo. |
 
-Voy a inspeccionar `C:\Users\pauli\Documents\junior\godin` para detectar lo que ya existe (Go/Odin, build, configs). Esto evita duplicar y te muestra estado real.
+## 3) CONVENCIONES CRÍTICAS
 
-Llamo a un agente de exploración con esto:
+- **Odin shared**: usar `-build-mode:shared`; en algunos nightlies `-build-mode:c-shared` difiere; con `@(export)` `-build-mode:shared` funciona.
+- **Sin entry point**: las librerías deben compilar sin `main`. Odin lo acepta con *shared*.
+- **Llamadas C**: procs exportados con `proc "c"`.
+- **Callbacks**: el puntero a función debe tener convención C; desde Odin pasar `go_square_ptr` o puntero exportado.
+- **Ownership**: si Odin aloja memoria con `libc.malloc`, **debe** exponerse `free` (`godin_free`) y el llamador de Go liberarla (`defer C.godin_free(...)`).
+- **DLL en runtime**: Windows busca en PATH o junto al .exe. `godin run/test` configuran PATH vía `Add-LibPath`.
+- **rpath/Linux**: cgo añade `-Wl,-rpath,$ORIGIN` para cargar desde `build/`.
 
-- Descripción: `scan godin repo for Go+Odin workspace`
-- Prompt:
-  ```
-  Scan C:\Users\pauli\Documents\junior\godin (read-only). 
-  1) List top-level (tree-like, concise).
-  2) Detect languages: *.go, go.mod, *.odin, odin.json? build scripts, justfile/Justfile, Taskfile*, Makefile, *.ps1/*.sh, README*, AGENTS*, .vscode.
-  3) If .odin present: note entrypoints (main.odin/proc/*.odin), build cmds seen.
-  4) If .go present: note go.mod, cmd/, internal/, pkg/.
-  5) Look for existing task orchestration (tasks.json, just, task).
-  6) Identify obvious interop (cgo comments, .h, -build-mode:c-shared, #cgo).
-  7) Return a short inventory + 3-5 observations.
-  ```
-- subagent_type: `explore`
-- (thoroughness: quick/medium) – empezaré con `quick`
+## 4) HITOS
 
-## 3) Arquitectura propuesta del toolkit
+### Iteración 1: andamiaje
+- [x] Estructura `go/`, `odin/`, `shared/`, `build/`, `scripts/`
+- [x] `shared/godin.h` inicial
+- [x] `odin/lib.odin` con `version` y `add` exportados
+- [x] `go/main.go` + `go/api.go` con cgo mínimos
+- [x] `godin.ps1` con `build/run`
 
-Una vez tenga inventario + tus respuestas, estructuraría así (agnóstico a editor):
+### Iteración 2: interop completo
+- [x] `str_len`, `sum` (slice), `scale` (struct puntero), `make_vec3` (struct valor), `div` + `last_error`, `apply` + callback, `dup`/`free`
+- [x] `go/callback.go` con `//export go_square`
+- [x] Sincronización con *mutex* en estado de error
+- [x] Demo completo en `main.go`
 
-| Componente | Propósito | Sugerido |
-|---|---|---|
-| `workspace/` layout | Separar idiomas sin mezclar | `go/` (o raíz con go.mod), `odin/`, `shared/` (headers/libs), `build/` (artefactos), `scripts/` (unificados). |
-| Task runner único | Un comando para ambos | `just` (simple, cross-platform, Windows OK). Generar `justfile` con targets: `build`, `test`, `fmt`, `lint`, `watch`, `clean`, `all`. |
-| Build unificado | Compilar según relación | Si independientes: build ambos. Si acoplados: build Odin lib (`-build-mode:c-shared`) -> build Go con cgo -> link. |
-| Calidad | Formato + lint | `gofmt`/`goimports`, `odin fmt` (o `odin build -vet` según versión), `go vet`, optional `golangci-lint`. |
-| Hot-reload (opcional) | Iteración rápida | `air` (Go). Para Odin: simple file watcher (`fswatch`/`watchexec`/PowerShell) que re-ejecuta `odin build/run`. |
-| Editor integration | DX | `.vscode/tasks.json` (invoca just), `settings.json` (format on save por archivo), `extensions.json`. También configs neutrales para otros editores. |
-| Plantillas | Inicio rápido | `templates/interop-cgo/` con `lib.odin` (export), `api.h`, `main.go` con `#cgo`, ejemplo build. |
-| Env/paths | Encontrar odin/go | `scripts/env.ps1`/`.env.example` con `ODIN_ROOT`, `GOOS/GOARCH`. |
-| Docs | Uso | `docs/toolkit.md` (comandos, layout, interop, troubleshooting). |
+### Iteración 3: tooling + plantilla + hot-reload
+- [x] `godin doctor`, `version`, `test`, `bench`, `fmt`, `lint`, `clean`, `new`
+- [x] `scripts/watch.ps1`, `air.toml`
+- [x] `templates/interop-cgo/` completo
+- [x] `scripts/test-template.ps1`, `godin test-template`
 
-Tradeoffs:
-- **cgo + Odin shared**: máximo rendimiento, pero build más frágil (flags, calling convention, tipos).
-- **IPC (stdin/stdout/json + subprocess)**: más desacoplado, debug fácil, overhead pequeño. Recomendado si relación no es crítica aún.
-- **WASM**: porta entre ecosistemas, pero limitante si necesitas syscalls nativos.
+### Iteración 4: cross-build, CI, docs
+- [x] `Dockerfile`, `godin docker-linux/*`
+- [x] `.github/workflows/ci.yml` (Windows + Linux)
+- [x] `docs/ARCHITECTURE.md`, `docs/TROUBLESHOOTING.md`, `docs/TEMPLATE.md`
+- [x] `CONTRIBUTING.md`, `LICENSE`, `.editorconfig`
 
-## 4) Plan de implementación (fases, sin ediciones aún)
+### Iteración 5: calidad y plug-and-play (v0.5.0)
+- [x] `godin check`, `test-race`, `watch-once`
+- [x] Cobertura Go **98.0%**, gate 95% en `godin cover`
+- [x] `godin test` pasa Go + Odin (10 tests)
+- [x] Plantilla validada end-to-end
+- [x] CI endurecido (concurrency, permissions, doctor, race, template)
+- [x] Docs README genérico, UTF-8 corregido
 
-| Fase | Acción | Verificable |
-|---|---|---|
-| P0 (Descubrimiento) | Ejecutar exploración (arriba). Leer README existente. Confirmar rutas odin.exe/go. | Inventario claro + respuestas del usuario. |
-| P1 (Infra base) | Diseñar `justfile` con targets mínimos (build/test/fmt/clean). Crear `scripts/` con wrappers PS1/Bash si necesario. | `just --list` conceptual (después de crear). |
-| P2 (Calidad + editor) | Definir `.vscode/*` coherente con convenciones del repo. Agregar `tools/` (version pins) si útil. | Settings/tasks válidos. |
-| P3 (Interop template) | Solo si (b)/(c). Esqueleto cgo+Odin compartido + README de cómo compilar en win32. | Build smoke-test plan. |
-| P4 (Hot-reload + DX) | Añadir `air.toml` (Go) + watcher Odin. Documentar. | Flujo iterativo definido. |
-| P5 (Docs + validación) | `docs/toolkit.md` + checklist. Plan de pruebas (build ambos, link). | Checklist ejecutable. |
+### Iteración 6: caso práctico blur imagen (v0.6.0)
+- [x] **Caso real**: box blur separable + Gaussian 5×5 separable sobre RGBA8
+- [x] **Implementación**: `odin/blur.odin`, `go/blur/` (Go + cgo), `go/cmd/blur/` CLI `go|odin|both`
+- [x] **Correctitud**: referencias independientes, `TestNoAllocs`, igualdad byte-a-byte
+- [x] **Optimización**: `godin build` → `-o:speed`; estudio `minimal`/`speed`/`speed -no-bounds-check`
+- [x] **Medición reproducible**: `scripts/case-study.ps1` → `build/case-study/results.txt` (benchmarks, tiles, call overhead, CLI avg+best, hashes Linux/Docker)
+- [x] **Portabilidad**: Windows/Linux con **hashes de píxeles idénticos**
+- [x] **CI**: smoke test blur Go==Odin
+- [x] **Docs**: [`docs/CASE-STUDY-IMAGE-BLUR.md`](docs/CASE-STUDY-IMAGE-BLUR.md), README/CHANGELOG/PLAN actualizados
 
-## 5) Siguiente paso inmediato
+## 5) COMANDOS OBJETIVO
 
-1. Responde a las 7 preguntas (sección 1).
-2. Yo lanzo la exploración del repo (sección 2) con el agente `explore` (solo lectura).
-3. Con inventario + respuestas, genero el `justfile`, estructura, templates y `.vscode/*` propuestos **para revisión** (aún sin escribir archivos), y ajusto según lo que encuentre.
+| Comando | Acción |
+| --- | --- |
+| `godin doctor` | Verifica pwsh/go/odin/linker/gcc/golangci-lint/docker |
+| `godin version` | Muestra versiones |
+| `godin build` | `odin build -build-mode:shared -o:speed` + `go build` |
+| `godin run` | build + ejecutar app |
+| `godin test` | `go test ./...` + `odin test` (lib cargada) |
+| `godin test-race` | `go test -race` |
+| `godin bench` | `go test -bench` (paquete demo) |
+| `godin blur` | CLI blur (demo caso práctico) |
+| `godin case-study` | Estudio reproducible |
+| `godin cover` | Cobertura con gate 95% |
+| `godin check` | fmt-check + lint + test |
+| `godin lint` | go vet + odin check + golangci-lint |
+| `godin fmt` | gofmt + odin strip-semicolon |
+| `godin watch` | hot-reload |
+| `godin new <path> <mod>` | scaffolding |
+| `godin docker-linux` | cross-build Linux |
+| `godin clean` | limpia build/ |
 
----
+## 6) NOTAS TÉCNICAS
 
-## 6) ESTADO FINAL (aplicado)
+- **Odin shared exports**: declarar procs con `@(export) foo :: proc(...) -> ... {}` y `proc "c"`. Añadir al `foreign import` si se prefiere, pero `@(export)` es suficiente con `-build-mode:shared`.
+- **Cabecera**: mantener `shared/godin.h` sincronizada con exports.
+- **cgo**: incluir `-I../shared` y rutas `-L../build`. Windows necesita `-lgodin`; Linux `-lgodin -ldl -lm -Wl,-rpath,$ORIGIN`.
+- **Errores**: Odin guarda string en buffer con mutex; Go lee con `C.GoString` y copia si se va a retener.
+- **Callbacks**: usar `proc "c"` para punteros pasados a C. Exportar función Go con `//export`.
+- **Tests**: `odin test` corre con el runtime de Odin; `go test` con cgo necesita la `.dll`/`.so` en PATH/LD_LIBRARY_PATH.
 
-Decisiones del usuario:
-- Objetivo: ejecutar archivos de ambos y que **se comuniquen entre sí**.
-- Relación: acoplados vía **ABI de C** (Odin shared lib + Go cgo).
-- Editor: **VS Code**. Target: **cross-compile**. CI: **sí**.
-- Task runner / hot-reload: a criterio del agente → **just** (reemplazado después por **`godin`**, ver §9); hot-reload documentado (air/watchexec).
+## 7) VERIFICACIÓN FINAL (v0.6.0)
 
-Fases completadas: P0 (exploración, dir vacío salvo el plan) → P5 (docs + validación).
-
-Verificación real (win32):
-- `just build` → `build/godin.dll` + `build/godin.lib` + `build/app.exe`
-- `just run`:
-  ```
-  godin_version() = 1
-  godin_add(2, 3) = 5
-  godin_str_len("hello from Go") = 13
-  godin_sum({1,2,3,4}) = 10
-  godin_scale({1,2,3}, 2) = {2, 4, 6}
-  godin_make_vec3(4,5,6) = {4, 5, 6}
-  ```
-- `just test` → `go test ok` + Odin "3 tests successful"
-- `just fmt` / `just lint` / `just clean` → exit 0
-- `just watch-once` → build OK; watcher detecta cambios y reconstruye.
-
-Interop cubierto: escalares, string C, slice (puntero+longitud), struct por
-puntero y struct por valor. Hot-reload vía `scripts/watch.ps1` (+ `air.toml`).
-
-Ajustes vs. plan original:
-- `-build-mode:c-shared` **no existe** en el Odin nightly → `-build-mode:shared` + `shared/godin.h` manual.
-- `odin fmt` **no existe** → `odin strip-semicolon`; `check`/`strip-semicolon` requieren `-no-entry-point`.
-- Odin `shared` requiere **MSVC `link.exe`** → justfile lo autolocaliza.
-- `cgo` usa **gcc/mingw** y enlaza el `.lib` de MSVC; `godin.dll` debe estar en PATH en runtime.
-
-Toolchain (se mantiene vía **scoop**, no winget):
-- Go `1.26.4`, Odin `dev-2026-05-nightly`, just `1.59.0`.
-- Odin **no existe** en winget; reinstalar Go vía winget crearía conflicto con el shim de scoop → se acordó mantener scoop.
-
----
-
-## 7) ENDURECIMIENTO (iteración 2)
-
-1. **Repo git**: `git init` (rama `main`), `.gitattributes` (LF, CRLF en `.ps1`),
-   `.gitignore` ampliado, primer commit.
-
-2. **Cross-compile real (Linux)**: se confirmó que **Odin no puede cross-linkear
-   desde Windows** (`Linking for cross compilation ... not supported`) y `cgo`
-   necesita toolchain del target. Solución: **Docker**.
-   - `Dockerfile` (multi-stage): `golang:1.26-bookworm` + `clang` + Odin `dev-2026-10`.
-   - `just docker-linux` extrae `build/linux/{libgodin.so,app}`.
-   - `just docker-linux-run` smoke test; `just docker-shell` para depurar.
-   - Go Linux con `RUNPATH=$ORIGIN` para hallar `libgodin.so`.
-   - Verificado: la app Linux imprime lo mismo que en Windows.
-
-3. **Interop endurecido**:
-   - **Errores**: `godin_div` + `godin_last_error` (cstring).
-   - **Callbacks**: `go/callback.go` (`//export go_square`) → `godin_apply`
-     (`ApplyFn = proc "c" (c.double) -> c.double`).
-   - **Ownership**: `godin_dup` con `libc.malloc` + `godin_free`.
-     *Hallazgo*: NO usar el allocator de Odin — su runtime no se inicializa al
-     cargar la lib desde Go (segfault en `mem.alloc`).
-
-Verificación final (win32 + Docker linux): `just build/run/test/fmt/lint` → OK;
-run imprime también `godin_div`, `godin_apply` (=14) y `godin_dup`; **5 tests Odin**
-+ go test; `just docker-linux-run` OK.
-
----
-
-## 8) CALIDAD Y PLANTILLA (iteración 3)
-
-1. **golangci-lint** (`v2.14.0` vía winget): `.golangci.yml` (schema v2,
-   `default: standard` + errcheck/govet/staticcheck/revive/gocritic/unparam/...).
-   Recetas `just lint` (incluye golangci-lint si está) y `just lint-go`.
-   `just lint` → **0 issues**.
-
-2. **Refactor cgo**: toda la capa cgo vive ahora en `go/api.go` (wrappers Go);
-   `go/callback.go` exporta `go_square`; tests en `go/interop_test.go` usan
-   wrappers (cgo **no está soportado en `_test.go`**). `main.go` → `run()`.
-   - **Cobertura**: `just cover` → **91.8%**, HTML en `build/coverage.html`.
-   - Añadido `just fmt-check` (verifica formato para CI).
-
-3. **CI**: jobs Windows + Linux con formato, lint, build, test, cobertura
-   (subida como artefacto), smoke test; `ODIN_VERSION`/`GOLANGCI_VERSION` como env.
-   Badges en README (placeholder `OWNER` a sustituir al publicar).
-
-4. **Plantilla reutilizable**: `scripts/new-project.ps1` + `just new <path> <mod>`.
-   - Copia scaffolding excluyendo `.git`, `build`, `.vs`, `.idea`, `node_modules`,
-     logs y `GO-ODIN-TOOLKIT-PLAN.md`.
-   - Reescribe `go/go.mod` (module) y `README.md` (badges `OWNER`/`godin` + H1).
-   - `docs/TEMPLATE.md` documenta uso + cómo marcar el repo como template en GitHub.
-   - **Verificado**: proyecto generado (`github.com/acme/mytool`) compila y corre.
-
----
-
-## 9) TASK RUNNER PROPIO: `godin` (iteración 4)
-
-Se sustituye **`just`** por **`godin`** (script PowerShell 7 + wrappers):
-
-- `godin.ps1` — todos los comandos: `build`, `run`, `test`, `cover`, `fmt`,
-  `fmt-check`, `lint`, `lint-go`, `watch`, `watch-once`, `clean`, `new`,
-  `docker-linux`, `docker-linux-run`, `docker-shell`, `help`.
-  - Cross-platform (`$IsWin` = `$env:OS -eq 'Windows_NT'`): en Windows antepone
-    MSVC `link.exe` al PATH; en Linux usa `LD_LIBRARY_PATH` y `libgodin.so`.
-  - Usa `Push-Location`/`finally` para no ensuciar el cwd del llamante.
-  - Comprueba `$LASTEXITCODE` de cada comando nativo y `exit 1` si falla.
-- `godin.cmd` (Windows) y `godin.sh` (Linux/macOS) — lanzadores que llaman a `pwsh`.
-- Se **elimina** `justfile` y la dependencia de `just`.
-- Actualizado: `.vscode/tasks.json` (comandos `.\godin`), CI (ambos jobs usan
-  `pwsh -File godin.ps1 ...`), `air.toml`, `scripts/watch.ps1`
-  (invoca `godin.ps1 build`), y toda la documentación.
-
-Uso: `.\godin <comando>` (Windows) o `./godin.sh <comando>` (Linux/macOS).
-
-
----
-
-## 10) CALIDAD Y PLUG-AND-PLAY (iteración 5, v0.5.0)
-
-Objetivo: endurecer tests/CI/docs y que el repo funcione recién clonado.
-
-1. **Diagnóstico**: `godin doctor` (`scripts/doctor.ps1`) comprueba pwsh, go,
-   cgo, odin, link.exe (Win) / clang (Linux), gcc, golangci-lint y docker;
-   `OK/WARN/FALTA` + pista de instalación; exit 1 si falta algo obligatorio.
-   `godin version` muestra runner + toolchain.
-
-2. **Comandos nuevos**: `check` (fmt-check + lint + test), `test-race`,
-   `bench`, `test-template`. Todos en `help` y `.vscode/tasks.json`.
-
-3. **Tests**: Go cubre `LastError`, ramas vacías, UTF-8, negativos y `main()`
-   → cobertura **91.8% → 98.0%** (el 2% restante es la rama defensiva
-   `godin_dup == nil`, no alcanzable sin forzar fallo de malloc). Odin pasa de
-   5 a **10 tests**. Gate de cobertura al 95% integrado en `godin cover`
-   (`scripts/coverage-check.ps1`).
-
-4. **Plantilla**: `templates/interop-cgo/main.go` ahora llama a `godin_add`.
-   `scripts/test-template.ps1` scaffoldea un proyecto completo y ensambla el
-   template mínimo; compila y ejecuta ambos. `godin new` excluye `TODO.md`.
-
-5. **CI**: `workflow_dispatch`, `concurrency`, `permissions: contents: read`,
-   `GO_VERSION=1.26`, paso `doctor`, gate de cobertura, `-race` en Linux y job
-   `template` en matrix Windows+Linux.
-
-6. **Docs**: README genérico con quickstart de 3 pasos (sin rutas de máquina),
-   `docs/ARCHITECTURE.md` (ABI, ownership, checklist para añadir símbolos),
-   `docs/TROUBLESHOOTING.md` (link.exe, DLL/0xc000007b, cgo, Odin nightly,
-   Docker), `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE` (MIT),
-   `.editorconfig`. Corregida la codificación UTF-8 de `docs/`.
-
-Verificación final (win32, todas exit 0):
-`godin doctor`, `version`, `fmt-check`, `lint` (0 issues), `test` (Go + 10
-tests Odin), `test-race`, `cover` (98.0% ≥ 95%), `bench` (Add 45 ns/op,
-Sum 98 ns/op, Dup 311 ns/op), `test-template` (scaffold + template mínimo) y
-`run` con la salida de interop completa.
+- [x] `godin doctor` OK
+- [x] `godin fmt-check` OK
+- [x] `godin lint` 0 issues
+- [x] `godin test` Go + Odin OK (incluye `blur` y CLI)
+- [x] `godin test-race` OK
+- [x] `godin cover` ≥ 98% ≥ 95%
+- [x] `godin case-study` → 3 hashes idénticos, resultados medidos
+- [x] `godin blur -impl both` OK Windows y Linux (Docker)
+- [x] CI verde (Windows + Linux + plantilla + smoke blur)
+- [x] Docs actualizados
